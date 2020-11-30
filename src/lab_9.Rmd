@@ -1,0 +1,126 @@
+---
+title: "lab_9"
+author: "Alyssa Kibbe"
+date: "11/30/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(palmerpenguins)
+library(GGally)
+library(stargazer)
+library(here)
+library(broom)
+library(janitor)
+```
+# Part 1
+
+Exploring the data
+```{r}
+penguins %>% 
+  ggpairs(aes(color = species))
+```
+
+Restricted exploring
+```{r}
+penguins %>% 
+  select(species, bill_length_mm:body_mass_g) %>% 
+  ggpairs(aes(color = species))
+```
+creating linear models 
+1. penguin mass ~ flipper length + species
+2. penguin mass ~ flipper length + species + sex
+3. penguin mass ~ flipper length + species + sex + bill length
+4. penguin mass ~ flipper length + species + sex + bill length + island
+
+```{r}
+lm1 <- lm(body_mass_g ~ flipper_length_mm + species, data = penguins)
+
+lm2 <- lm(body_mass_g ~ flipper_length_mm + species + sex, data = penguins)
+
+lm3 <- lm(body_mass_g ~ flipper_length_mm + species + sex + bill_length_mm, data = penguins)
+
+lm4 <- lm(body_mass_g ~ flipper_length_mm + species + sex + bill_length_mm + island, data = penguins)
+```
+
+```{r}
+plot(lm1) # no concerns
+plot(lm2) # no concerns
+plot(lm3) # no concerns
+plot(lm4) #no concerns
+```
+AIC
+```{r}
+AIC(lm1) # 5031.523
+AIC(lm2) # 4740.774
+AIC(lm3) # 4733.574
+AIC(lm4) # 4736.979
+```
+
+stargazer package to show side by side results
+```{r}
+stargazer(lm1, lm3, type = "html")
+```
+omitting a variable
+```{r}
+ggplot(data = penguins, aes(x = flipper_length_mm, y = bill_depth_mm))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+#include species variable
+ggplot(data = penguins, aes(x = flipper_length_mm, y = bill_depth_mm, group = species)) +
+  geom_point(aes(color = species))+
+  geom_smooth(method = "lm")
+```
+# Part 2
+
+```{r}
+lizards <- read.csv(here("data", "lizards.csv"))
+
+lizards %>% 
+  count(spp) %>% 
+  arrange(-n)
+
+# UTST = Uta stansburiana (side-blotched lizard)
+```
+
+ subgroups
+```{r}
+utst <- lizards %>% 
+  filter(spp == "UTST") %>% 
+  filter(site %in% c("IBPE", "RABB", "EAST")) %>% 
+  filter(tail %in% c("B", "W"))
+```
+ 
+ counts & proportions & making table
+ 
+```{r}
+tail_counts <- utst %>% 
+  janitor::tabyl(site, tail)
+
+# both percentages & counts
+tail_proportions <- tail_counts %>% 
+  adorn_percentages() %>% 
+  janitor::adorn_pct_formatting(digits = 2) %>% 
+  adorn_ns()
+```
+ 
+contingency table & chi-square
+ -- format to chi-square table
+```{r}
+lizard_ct <- tail_counts %>% 
+  column_to_rownames(var = "site")
+```
+run test
+```{r}
+lizard_x2 <- chisq.test(lizard_ct)
+lizard_x2
+lizard_tidy <- tidy(lizard_x2)
+lizard_tidy
+```
+
+
+
+
